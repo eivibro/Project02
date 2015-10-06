@@ -1,0 +1,176 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[norsk]{babel}
+%\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{pdfpages}
+\usepackage{tikz}
+%\usepackage{multirow}
+\usepackage{cite}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+% \usepackage{hyperref}
+\usepackage{url}
+\usepackage{amssymb}
+
+\setcounter{tocdepth}{1}
+
+\lstset{language=C++, commentstyle=\textcolor[rgb]{0.00,0.50,0.00}, keepspaces=true, columns=flexible, basicstyle=\footnotesize, keywordstyle=\color{blue}, showstringspaces=false, inputencoding=ansinew}
+
+\mathtoolsset{showonlyrefs}
+
+\author{Eivind Brox}
+\newcommand{\db}{\text{dB}}
+
+\title{Prosjekt 1 FYS3150}
+\pagenumbering{roman}
+\setcounter{tocdepth}{3}
+\setcounter{page}{0}
+\date{\today}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+\pagestyle{headings}
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+\section{Introduction}
+
+
+\clearpage
+
+
+\section{Method}
+We first consider the solution to the radial part of Schr\"odinger's equation
+\begin{gather}
+  -\frac{\hbar^2}{2 m} \left ( \frac{1}{r^2} \frac{d}{dr} r^2
+  \frac{d}{dr} - \frac{l (l + 1)}{r^2} \right )R(r) + V(r) R(r) = E R(r).
+\end{gather}
+Where $V(r) = (1/2)kr^2$ is the harmonic oscillator potential. $E$ is the harmonic oscillator energy in three dimensions, and $k=m\omega^2$. The frequency of the oscillator is $\omega$ and the energies are calculated as
+\begin{gather}
+E_{nl}=  \hbar \omega \left(2n+l+\frac{3}{2}\right)
+\end{gather}
+with $n,l = 0,1,2,\dots$
+
+The quantum number $l$ is the orbital momentum of the electron, and as we are now in spherical coordinates we have that $r \in [0,\infty)$.  
+%
+Then we substitute $R(r) = (1/r) u(r)$ and obtain
+%
+\begin{gather}
+  -\frac{\hbar^2}{2 m} \frac{d^2}{dr^2} u(r) 
+       + \left ( V(r) + \frac{l (l + 1)}{r^2}\frac{\hbar^2}{2 m}
+                                    \right ) u(r) = E u(r)
+\end{gather}
+We can introduce a dimensionless variable $\rho = (1/\alpha)r$, where $\alpha$ is a constant with dimension length. We will also be using $l=0$ in this project. Thus, we get
+\begin{gather}
+  -\frac{\hbar^2}{2 m \alpha^2} \frac{d^2}{d\rho^2} u(\rho) 
+       + \frac{k}{2} \alpha^2\rho^2u(\rho)  = E u(\rho) .
+\end{gather}
+where we also have inserted 
+\begin{gather}
+V(\rho) = (k/2)\alpha^2\rho^2u(\rho)
+\end{gather}
+Multiplying with $2m\alpha^2/\hbar^2$ on both sides, we get
+\begin{gather}
+-\frac{d^2}{d\rho^2} u(\rho) 
+       + \frac{mk}{\hbar^2} \alpha^4\rho^2u(\rho)  = \frac{2m\alpha^2}{\hbar^2}E u(\rho) .
+\end{gather}
+Now we fix $\alpha$ to
+\begin{gather}
+\alpha = \left(\frac{\hbar^2}{mk}\right)^\frac{1}{4}
+\end{gather}
+and define
+\begin{gather}
+\lambda = \frac{2m\alpha^2}{\hbar^2}
+\end{gather}
+to obtain the following version of Schr\"odinger's equation
+\begin{gather}
+-\frac{d^2}{d\rho^2}u(\rho) +\rho^2u(\rho) = \lambda Eu(\rho)
+\end{gather}
+This is the eigenvalue equation for which we are interested in calculating the eigenvalues numerically. For this simplified case we have the analytical solutions $\lambda_0 = 3$, $\lambda_1 = 7$, $\lambda_2 = 11,\dots$ We can utilize this to verifie our work.
+
+To start off we use the following discretization of the second derivative
+\begin{gather}
+u''(\rho) = \frac{u(\rho+h)+u(\rho-h)-2u(\rho)}{h^2}+\mathcal{O}(h^2)
+\end{gather}
+where $h$ is the steplength.
+
+We have that the boundary conditions are $u(0) = 0$ and $u(\infty) = \infty$. The problem is that we have no way to represent infinity on the computer. We thus have to spesify a value for $p_\text{max}$ which gives us a 'good enough' approximation for the number of eigenvalues we need to find, and the accuracy we want. $\rho_\text{min} = 0$ trivially.
+
+Our step length then becomes 
+\begin{gather}
+h = \frac{\rho_\text{max}-\rho_\text{min}}{N} = \frac{\rho_\text{max}}{N}
+\end{gather}
+where $N+1$ is the number of points we are using for our discretization. 
+We may then define a arbritrary value of $\rho_i$ as 
+\begin{gather}
+\rho_i = \rho_\text{min} + ih = ih
+\end{gather}
+for $i=0,1,2,\dots,N$
+
+Now we write Schr\"odingers eqution in discretized form as
+\begin{gather}
+-\frac{u_{i+1} -2u_i +u_{i-1}}{h^2}+\rho_i^2u_i=\lambda u_i
+\end{gather}
+where $u_{i\pm1} = u(\rho_i \pm h)$.
+
+We use that $\rho_i^2=V_i$, so that 
+\begin{gather}
+-\frac{u_{i+1} -2u_i +u_{i-1}}{h^2}+V_iu_i=\lambda u_i
+\end{gather}
+
+Given this eqution we see that it has a shape that can be represented as an matrix equation with an equation on tridiagonal form.
+\begin{gather}
+A\mathbf{u}=\lambda\mathbf{u}
+\label{eigequ}
+\end{gather}
+
+where
+\begin{gather}
+\mathbf{A} = 
+\begin{pmatrix}
+\frac{2}{\hbar^2} + V_1& -\frac{1}{\hbar^2} & 0 & \dots & 0\\
+-\frac{1}{\hbar^2} & \frac{2}{\hbar^2} + V_2& -\frac{1}{\hbar^2} & \ddots & \vdots \\
+0 & \ddots & \ddots & \ddots & 0\\
+\vdots & \ddots & -\frac{1}{\hbar^2} & \frac{2}{\hbar^2} + V_{N-2} & -\frac{1}{\hbar^2}\\
+0 & \dots & 0 & -\frac{1}{\hbar^2} &\frac{2}{\hbar^2} + V_{N-1}
+\end{pmatrix},
+\quad
+\mathbf{u} =
+\begin{pmatrix}
+u_1\\
+u_2\\
+u_3\\
+\vdots\\
+u_{N-1}
+\end{pmatrix}
+\end{gather}
+
+We observe that this is an eigenvalue problem which we have to solve. For the endpoints we already know the solutions, which are zero for both. 
+
+We are going to use the methode of Jacobi rotation to solve Eq. \eqref{eigequ}. First we have that for a real and symmetric matrix, $\mathbf{A} \in \mathbb{R}^{n\times n}$, there exists a real orthogonal matrix $\mathbf{S}$ such that
+\begin{gather}
+\mathbf{S}^T\mathbf{AS} = \text{diag}(\lambda_1, \lambda_2, \dots, \lambda_n)
+\end{gather}
+\clearpage
+\section{Results and Discussion}
+\clearpage
+
+\section{Conclusion}
+
+
+\clearpage
+\appendix
+\section{Appendix}
+
+
+
+\end{document}
