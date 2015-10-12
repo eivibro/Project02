@@ -1,21 +1,31 @@
 #include "functions.h"
+#include "lib.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 //Creating matrix for calculations with Armadillo
-mat mainMatrix(int dimensions, double step_length, double(*potential)(double,int))
+mat mainMatrix(int dimensions, double step_length, double(*potential)(double,int,double), double omega_r)
 {
     double diagonal_fixed = 2./(step_length*step_length);
     double off_diagonal = -1./(step_length*step_length);
     mat A(dimensions, dimensions, fill::zeros);
-    A(0,0) = diagonal_fixed+potential(step_length, 1);
+    A(0,0) = diagonal_fixed+potential(step_length, 1, omega_r);
     A(0,1) = off_diagonal;
-    A(dimensions-1,dimensions-1) = diagonal_fixed + potential(step_length,dimensions);
+    A(dimensions-1,dimensions-1) = diagonal_fixed + potential(step_length,dimensions,omega_r);
     A(dimensions-1, dimensions-2) = off_diagonal;
     for(int i = 1; i < dimensions-1; i++){
-        A(i,i) = diagonal_fixed + potential(step_length,i+1);
+        A(i,i) = diagonal_fixed + potential(step_length,i+1,omega_r);
         A(i,i+1) = off_diagonal;
         A(i,i-1) = off_diagonal;
     }
     return A;
+}
+
+//Potential for two electrons repulsed by Coulomb potential
+double potentialRepulsiveColumbInteractions(double step_length, int i, double omega_r)
+{
+    return ((step_length*i)*(step_length*i)*omega_r*omega_r+1./(step_length*i));
 }
 
 //Finding the largest off-diagonal element in matrix A
@@ -58,7 +68,7 @@ mat jacobiRotationArmadillo(mat A, int *row, int *column){
 }
 
 //The dimensionless quantum harmonical oscillator
-double harmonicOscillatorPotential(double step_length, int i)
+double harmonicOscillatorPotential(double step_length, int i, double omega)
 {
     return (step_length*i)*(step_length*i);
 }
@@ -118,7 +128,9 @@ mat jacobiRotationMethod(mat A)
         max_squared = findLargestOffDiagonalElement(A, &row, &column);
         A = jacobiRotation(A, row, column);
         iterations++;
-    }return A;
+    }
+    cout << "Number of Jacobi rotations: " << iterations << endl;
+    return A;
 }
 
 //Creates transformation matrix for the armadillo method
@@ -129,4 +141,60 @@ mat transformationMatrix(int row, int column, int dimensions, double c, double s
     A(row, column) = s;
     A(column, row) = -s;
     return A;
+}
+
+//Function utilizing the function tqli() in lib.cpp to calculate eigenvalues and eigenvectors
+void tqliEigensolver(double *off_diagonal, double *diagonal, double **output_matrix, int n, double step_length,
+                     double omega_r,double(*potential)(double,int,double))
+{
+    double constant_diagonal = 2./(step_length*step_length);
+    double constant_off_diagonal = -1./(step_length*step_length);
+    for(int i = 0; i < n; i++){
+        diagonal[i] = constant_diagonal+potential(step_length,i+1,omega_r);
+        off_diagonal[i] = constant_off_diagonal;
+        output_matrix[i][i] = 1;
+        for(int j = i + 1; j < n; j++){
+            output_matrix[i][j] = 0;
+        }
+    }
+    tqli(diagonal, off_diagonal, n, output_matrix);
+}
+
+
+
+void writeResultsToFile(string filename, vec eigen_values, double *diagonal, double *rho,
+                        double **output_matrix)
+{
+    int dim = eigen_values.n_elem + 2;
+    double **eigen_vector_matrix;
+    eigen_vector_matrix = (double **) matrix(dim,3,sizeof(double));
+    for(int j = 0; j < 3; j++){
+        int index = -1;
+        for(int i = 0; i < dim-2; i++){
+            if(eigen_values(j) == diagonal[i]){index = i;}
+        }
+        if(index == -1){
+            cout << "Could not find eigenvalue, something went wrong" << endl;
+        };
+        eigen_vector_matrix[0][j] = 0;
+        eigen_vector_matrix[dim-1][j] = 0;
+        for(int i = 1; i < dim-1; i++){
+            eigen_vector_matrix[i][j] = output_matrix[i-1][index];
+        }
+    }
+
+    ofstream outfile;
+    outfile.open(filename);
+    outfile << dim << endl;
+    outfile << eigen_values[0] << endl;
+    outfile << eigen_values[1] << endl;
+    outfile << eigen_values[2] << endl;
+    for(int i = 0; i < dim; i++){
+        outfile << left << setw(15) << setprecision(4) << setw(15) <<
+                   eigen_vector_matrix[i][0]*eigen_vector_matrix[i][0]
+                << setw(15) << eigen_vector_matrix[i][1]*eigen_vector_matrix[i][1]
+                << setw(15) << eigen_vector_matrix[i][2]*eigen_vector_matrix[i][2]
+                << "\t" << rho[i]<< endl;
+    }
+    free_matrix((void**) eigen_vector_matrix);
 }

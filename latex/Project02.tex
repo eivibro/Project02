@@ -2,7 +2,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[norsk]{babel}
+%\usepackage[norsk]{babel}
 %\usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{enumerate}
@@ -10,7 +10,7 @@
 \usepackage{listings}
 \usepackage{pdfpages}
 \usepackage{tikz}
-%\usepackage{multirow}
+\usepackage{multirow}
 \usepackage{cite}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
@@ -43,12 +43,20 @@
 
 \pagenumbering{arabic}
 \section{Introduction}
+In this project the problem of finding the solutions of eigenvalue problems is considered. This is done by investigating the physical quantum problem of two electrons in an harmonic oscillator, with and without Coulomb interactions between the electrons. 
+
+In the section describing the methods, equations for the quantum mechanics are modified to suit our different cases, before the Jacobi rotation method, which is used in this project, is described. 
+
+The results and discussion section presents the results, with considerations in relation to performance regarding the number of grid points used. The run time of the method is also compared to an other method, which turns out to be a lot faster.
+
+Lastly the project is concluded. What could have been done different and suggestions to other implementations that could have been done 
 
 
 \clearpage
 
 
 \section{Method}
+\subsection{Non-Interacting Electrons in an Harmonic Oscillator Potential}
 We first consider the solution to the radial part of Schr\"odinger's equation
 \begin{gather}
   -\frac{\hbar^2}{2 m} \left ( \frac{1}{r^2} \frac{d}{dr} r^2
@@ -95,28 +103,28 @@ to obtain the following version of Schr\"odinger's equation
 \begin{gather}
 -\frac{d^2}{d\rho^2}u(\rho) +\rho^2u(\rho) = \lambda Eu(\rho)
 \end{gather}
-This is the eigenvalue equation for which we are interested in calculating the eigenvalues numerically. For this simplified case we have the analytical solutions $\lambda_0 = 3$, $\lambda_1 = 7$, $\lambda_2 = 11,\dots$ We can utilize this to verifie our work.
+This is the eigenvalue equation for which we are interested in calculating the eigenvalues numerically. For this simplified case we have the analytical solutions $\lambda_0 = 3$, $\lambda_1 = 7$, $\lambda_2 = 11,\dots$ We can utilize this to verify our work.
 
 To start off we use the following discretization of the second derivative
 \begin{gather}
 u''(\rho) = \frac{u(\rho+h)+u(\rho-h)-2u(\rho)}{h^2}+\mathcal{O}(h^2)
 \end{gather}
-where $h$ is the steplength.
+where $h$ is the step length.
 
-We have that the boundary conditions are $u(0) = 0$ and $u(\infty) = \infty$. The problem is that we have no way to represent infinity on the computer. We thus have to spesify a value for $p_\text{max}$ which gives us a 'good enough' approximation for the number of eigenvalues we need to find, and the accuracy we want. $\rho_\text{min} = 0$ trivially.
+We have that the boundary conditions are $u(0) = 0$ and $u(\infty) = \infty$. The problem is that we have no way to represent infinity on the computer. We thus have to specify a value for $p_\text{max}$ which gives us a 'good enough' approximation for the number of eigenvalues we need to find, and the accuracy we want. $\rho_\text{min} = 0$ trivially.
 
 Our step length then becomes 
 \begin{gather}
 h = \frac{\rho_\text{max}-\rho_\text{min}}{N} = \frac{\rho_\text{max}}{N}
 \end{gather}
 where $N+1$ is the number of points we are using for our discretization. 
-We may then define a arbritrary value of $\rho_i$ as 
+We may then define a arbitrary value of $\rho_i$ as 
 \begin{gather}
 \rho_i = \rho_\text{min} + ih = ih
 \end{gather}
 for $i=0,1,2,\dots,N$
 
-Now we write Schr\"odingers eqution in discretized form as
+Now we write Schr\"odingers equation in discretized form as
 \begin{gather}
 -\frac{u_{i+1} -2u_i +u_{i-1}}{h^2}+\rho_i^2u_i=\lambda u_i
 \end{gather}
@@ -127,7 +135,7 @@ We use that $\rho_i^2=V_i$, so that
 -\frac{u_{i+1} -2u_i +u_{i-1}}{h^2}+V_iu_i=\lambda u_i
 \end{gather}
 
-Given this eqution we see that it has a shape that can be represented as an matrix equation with an equation on tridiagonal form.
+Given this equation we see that it has a shape that can be represented as an matrix equation with an equation on tridiagonal form.
 \begin{gather}
 A\mathbf{u}=\lambda\mathbf{u}
 \label{eigequ}
@@ -154,22 +162,273 @@ u_{N-1}
 \end{pmatrix}
 \end{gather}
 
-We observe that this is an eigenvalue problem which we have to solve. For the endpoints we already know the solutions, which are zero for both. 
+We observe that this is an eigenvalue problem which we have to solve. 
 
-We are going to use the methode of Jacobi rotation to solve Eq. \eqref{eigequ}. First we have that for a real and symmetric matrix, $\mathbf{A} \in \mathbb{R}^{n\times n}$, there exists a real orthogonal matrix $\mathbf{S}$ such that
+\subsection{Two Electrons Interacting with a repulsive Coulomb Force in an External Harmonic Oscillator Potential} 
+Let us start with the single-electron equation written as
+\begin{gather}
+  -\frac{\hbar^2}{2 m} \frac{d^2}{dr^2} u(r) 
+       + \frac{1}{2}k r^2u(r)  = E^{(1)} u(r),
+\end{gather}
+where $E^{(1)}$ stands for the energy with one electron only.
+For two electrons with no repulsive Coulomb interaction, we have the following 
+Schr\"odinger equation
+\begin{gather}
+\left(  -\frac{\hbar^2}{2 m} \frac{d^2}{dr_1^2} -\frac{\hbar^2}{2 m} \frac{d^2}{dr_2^2}+ \frac{1}{2}k r_1^2+ \frac{1}{2}k r_2^2\right)u(r_1,r_2)  = E^{(2)} u(r_1,r_2) .
+\end{gather}
+
+
+Note that we deal with a two-electron wave function $u(r_1,r_2)$ and 
+two-electron energy $E^{(2)}$.
+
+With no interaction this can be written out as the product of two
+single-electron wave functions, that is we have a solution on closed form.
+
+We introduce the relative coordinate ${\bf r} = {\bf r}_1-{\bf r}_2$
+and the center-of-mass coordinate ${\bf R} = 1/2({\bf r}_1+{\bf r}_2)$.
+With these new coordinates, the radial Schr\"odinger equation reads
+\begin{gather}
+\left(  -\frac{\hbar^2}{m} \frac{d^2}{dr^2} -\frac{\hbar^2}{4 m} \frac{d^2}{dR^2}+ \frac{1}{4} k r^2+  kR^2\right)u(r,R)  = E^{(2)} u(r,R).
+\end{gather}
+
+The equations for $r$ and $R$ can be separated via the ansatz for the 
+wave function $u(r,R) = \psi(r)\phi(R)$ and the energy is given by the sum
+of the relative energy $E_r$ and the center-of-mass energy $E_R$, that
+is
+\begin{gather}
+E^{(2)}=E_r+E_R.
+\end{gather}
+
+We add then the repulsive Coulomb interaction between two electrons,
+namely a term 
+\begin{gather}
+V(r_1,r_2) = \frac{\beta e^2}{|{\bf r}_1-{\bf r}_2|}=\frac{\beta e^2}{r},
+\end{gather}
+with $\beta e^2=1.44$ eVnm.
+
+Adding this term, the $r$-dependent Schr\"odinger equation becomes
+\begin{gather}
+\left(  -\frac{\hbar^2}{m} \frac{d^2}{dr^2}+ \frac{1}{4}k r^2+\frac{\beta e^2}{r}\right)\psi(r)  = E_r \psi(r).
+\end{gather}
+This equation is similar to the one we had previously in (a) and we introduce
+again a dimensionless variable $\rho = r/\alpha$. Repeating the same
+steps as in (a), we arrive at 
+\begin{gather}
+  -\frac{d^2}{d\rho^2} \psi(\rho) 
+       + \frac{1}{4}\frac{mk}{\hbar^2} \alpha^4\rho^2\psi(\rho)+\frac{m\alpha \beta e^2}{\rho\hbar^2}\psi(\rho)  = 
+\frac{m\alpha^2}{\hbar^2}E_r \psi(\rho) .
+\end{gather}
+We want to manipulate this equation further to make it as similar to that in (a)
+as possible. We define a 'frequency' 
+\begin{gather}
+\omega_r^2=\frac{1}{4}\frac{mk}{\hbar^2} \alpha^4,
+\end{gather}
+and fix the constant $\alpha$ by requiring 
+\begin{gather}
+\frac{m\alpha \beta e^2}{\hbar^2}=1
+\end{gather}
+or 
+\begin{gather}
+\alpha = \frac{\hbar^2}{m\beta e^2}.
+\end{gather}
+Defining 
+\begin{gather}
+\lambda = \frac{m\alpha^2}{\hbar^2}E,
+\end{gather}
+we can rewrite Schr\"odinger's equation as
+\begin{gather}
+  -\frac{d^2}{d\rho^2} \psi(\rho) + \omega_r^2\rho^2\psi(\rho) +\frac{1}{\rho} = \lambda \psi(\rho).
+\end{gather}
+We treat $\omega_r$ as a parameter which reflects the strength of the oscillator potential.
+
+Here we will study the cases $\omega_r = 0.01$, $\omega_r = 0.5$, $\omega_r =1$,
+and $\omega_r = 5$   
+for the ground state only, that is the lowest-lying state. This becomes a problem which may be solved in the same fashion as the non-interacting case. We only change the potential from $V_i = \rho_i^2$ to $V_i = \rho_i^2\omega_r + 1/\rho_i$, but the $\rho$'s are not defined equally.
+
+\subsection{The Jacobi Rotation Method}
+
+We are going to use the method of Jacobi rotation to solve Eq. \eqref{eigequ}. First we have that for a real and symmetric matrix, $\mathbf{A} \in \mathbb{R}^{n\times n}$, there exists a real orthogonal matrix $\mathbf{S}$ such that
 \begin{gather}
 \mathbf{S}^T\mathbf{AS} = \text{diag}(\lambda_1, \lambda_2, \dots, \lambda_n)
+\label{eq:symtrans}
 \end{gather}
+Our strategy will thus be to apply similarity transformations of the form $\mathbf{S}^T\mathbf{AS} = \mathbf{B}$ until all the off-diagonal elements of the matrix $\mathbf{B}$ is close to zero. We should then be left with the eigenvalues across the diagonal of the final matrix.
+
+We choose our matrix $\mathbf{S}$ to be of the form
+\begin{gather}
+\begin{pmatrix}
+1 & 0 & \dots & \dots & \dots & \dots & \dots& 0\\
+0 & \ddots & \ddots & \ddots & \ddots & \ddots & \ddots & \vdots\\
+\vdots & \ddots & 1 & \ddots& \ddots & \ddots & \ddots &0\\
+\vdots & \ddots & \ddots & \cos \theta & 0 & \dots & 0 & \sin \theta \\
+\vdots & \ddots & \ddots & 0 & 1 & \ddots & \ddots & 0 \\
+\vdots & \ddots & \ddots & \vdots & \ddots & \ddots & \ddots & \vdots \\
+\vdots & \ddots & \ddots & 0 & \ddots & \ddots & 1 & 0 \\
+0 & \dots & \dots & -\sin \theta & 0 & \dots & 0 & \cos \theta \\
+\end{pmatrix}
+\end{gather} 
+where the sine functions is placed at the same position as the elements we want to eliminate from our matrix $\mathbf{A}$. The placement of the cos functions follow that of the one for the sine functions.
+
+We 
+Define the quantities $\tan\theta = t= s/c$, with $s=\sin\theta$ and $c=\cos\theta$ and
+\begin{gather}
+\tau = \frac{a_{ll}-a_{kk}}{2a_{kl}}.
+\end{gather}
+We can then define the angle $\theta$ so that the non-diagonal matrix elements of the transformed matrix 
+$a_{kl}$ become non-zero and
+we obtain the quadratic equation
+\begin{gather}
+t^2+2\tau t-1= 0,
+\end{gather}
+resulting in 
+\begin{gather}
+  t = -\tau \pm \sqrt{1+\tau^2},
+\end{gather}
+and $c$ and $s$ are easily obtained via
+\begin{gather}
+   c = \frac{1}{\sqrt{1+t^2}},
+\end{gather}
+and $s=tc$. 
+
+Preforming the symmetric transformation in equation \eqref{eq:symtrans} gives us the following values that have changed from matrix $\mathbf{A}$ to matrix $\mathbf{B}$ 
+
+\begin{equation}
+\begin{aligned}
+b_{ii} &= a_{ii},\quad i \neq k, i \neq l\\
+b_{ik} &= a_{ik}c - a_{il}s,\quad i \neq k, i \neq l\\
+b_{il} &= a_{il}c + a_{ik}s,\quad i \neq k, i \neq l\\
+b_{kk} &= a_{kk}c^2 - 2a_{kl}cs+ a_{ll}s^2\\
+b_{ll} &= a_{ll}c^2+ 2a_{kl}cs+a_{kk}s^2\\
+b_{kl} &= (a_{kk} - a_{ll})cs+ a_{kl}(c^2-s^2)\\
+\end{aligned}
+\label{eq:matrix_elements}
+\end{equation}
+where we already have determined $t,c$ and $s$ so that the chosen off-diagonal element becomes zero. For the fastest convergence we always eliminate the largest off-diagonal element for each iteration. We also choose the smaller of the two possible values for $t$. We do this to minimize the difference between matrix $\mathbf{A}$ and $\mathbf{B}$. We have that
+
+\begin{gather}
+||{\bf B}-{\bf A}||_F^2=4(1-c)\sum_{i=1,i\ne k,l}^n(a_{ik}^2+a_{il}^2) +\frac{2a_{kl}^2}{c^2}.
+\end{gather}
+
+When we ensure that the angle is as close to zero as possible, this will minimize the norm since $c\rightarrow 1$ when $\theta \rightarrow 0$.
+
+To algorithm we get is then described as:
+\begin{itemize}
+\item Choose a convergence criteria $\epsilon$, which has to be smaller than the maximum off-diagonal element squared to preform a new Jacobi rotation.
+\item Find the value and indices of the maximum off-diagonal matrix element.
+\item Calculate the new matrix elements from equation \eqref{eq:matrix_elements}. 
+\item Repeat until convergence criteria is reached.
+\end{itemize} 
 \clearpage
+
 \section{Results and Discussion}
+\subsection{Non-Interacting case}
+The results of the different numbers of integration points and potential function used is presented in Table \ref{table_eigvals}.
+\begin{table}[ht!]
+\centering
+\footnotesize
+\begin{tabular}{c|c|c|c}
+N& Eigenvalue & Non-interacting & Number of rotations\\ \hline
+\multirow{3}{*}{10} & $\lambda_1$ & 2.79548 & \multirow{3}{*}{48}\\ 
+& $\lambda_2$ & 5.93948 & \\ 
+& $\lambda_3$ & 9.00519 & \\ \hline
+\multirow{3}{*}{50} & $\lambda_1$ & 2.99361 & \multirow{3}{*}{2804}\\ 
+& $\lambda_2$ & 6.96796 &\\ 
+& $\lambda_3$ & 10.9216 &\\ \hline
+\multirow{3}{*}{200} & $\lambda_1$ & 2.99961 & \multirow{3}{*}{51181}\\ 
+& $\lambda_2$ & 6.99807 &  \\ 
+& $\lambda_3$ & 10.9953 & \\ \hline
+\multirow{3}{*}{300} & $\lambda_1$ & 2.99983 & \multirow{3}{*}{117645}\\ 
+& $\lambda_2$ & 6.99914 & \\ 
+& $\lambda_3$ & 10.9979 & \\ 
+\end{tabular}
+\caption{The first eigenvalues tabulated as a function of the number of grid points. $\rho_\text{max}$ was set equal to seven for all calculations. The effective number of grid points for the Jacobi rotations was two less than tabulated. Here the endpoints are considered grid points}
+\label{table_eigvals}
+\end{table}
+
+We observe that we have a precision of four leading digits for 200 integration points. $\rho_\text{max}$ was set to 7 from some trial and error. It seems like an OK value. This is the number of integration points that is used from now on, as it gave consistency for the eigenvalues for the interacting case as well.
+
+Table \ref{table_eigvals} also presents the number of rotations needed to reach convergence for the method. Considering these values, it seems like the number of rotations needed goes roughly as the dimensionality of the matrix squared.
+
+The method used 4.048598s for 200 integration points. As a comparison, the \textit{tqli()} method, from the lib.cpp-file, used 0.092409s. This is a lot faster, but that's what to expect comparing these to algorithms. This still seems like more than it could have been. It may be due to the fact that the program written for this project used a Armadillo classes for storage of the matrices. This causes the need for more computations and slows down the code. I also returned vectors and matrices from functions, which I realized is bad programming, although I'm not sure how strict this is when the matrix is an actual class object.
+
+\clearpage
+\subsection{Interacting Case}
+In Table \ref{table_eigvalsi} the ground state eigenvalue is tabulated corresponding to the strength of the potential of the harmonic oscillator. As we would expect, a increase in the outer harmonic potential strength will give us higher values for energy for the ground state. 
+\begin{table}[ht!]
+\centering
+\begin{tabular}{c|c}
+ $\omega_r$ & $\lambda_1$ \\ \hline
+ 0.01&0.5125\\
+ 0.5&2.230\\
+ 1&4.057\\
+ 5&17.44
+\end{tabular}
+\caption{The ground state eigenvalue as a function of the harmonic oscillator potential. 200 grid points and $\rho_\text{max}$ set to 7}
+\label{table_eigvalsi}
+\end{table}
+
+\subsection{The Probability Distribution}
+The function \textit{tqli()} was used to calculate the eigenvectors for the ground state and the two first exited states for the different cases. To make the calculations easier to perform, all are done with 200 grid points and $\rho_\text{max}$ set to 7.
+\begin{figure}[ht!]
+\includegraphics[width = 0.9\textwidth]{non_interacting.eps}
+\caption{The probability distribution for the ground state and the two first exited states with no interaction between the electrons.}
+\end{figure}
+
+\begin{figure}[ht!]
+\includegraphics[width = 0.9\textwidth]{omega001.eps}
+\caption{The probability distribution for the ground state and the two first exited states with interaction between the electrons. $\omega_r$ = 0.01}
+\end{figure}
+
+\begin{figure}[ht!]
+\includegraphics[width = 0.9\textwidth]{omega05.eps}
+\caption{The probability distribution for the ground state and the two first exited states with interaction between the electrons. $\omega_r$ = 0.5}
+\end{figure}
+
+\begin{figure}[ht!]
+\includegraphics[width = 0.9\textwidth]{omega1.eps}
+\caption{The probability distribution for the ground state and the two first exited states with interaction between the electrons. $\omega_r$ = 1}
+\end{figure}
+
+\begin{figure}[ht!]
+\includegraphics[width = 0.9\textwidth]{omega5.eps}
+\caption{The probability distribution for the ground state and the two first exited states with interaction between the electrons. $\omega_r$ = 5}
+\end{figure}
+The repulsion between the electrons is only dependent of the distance between them, and not explicitly on the outer harmonic oscillator potential. Therefore it seems natural that a larger harmonic oscillator potential will bring the electrons closer to each other. 
+
+It is obvious that the value for $\rho_\text{max}$ is chosen too small for at least $\omega_r = 0.01$, but also for $\omega_r = 0.5$, but it gives a nice impression to have the same scale for all the plots. Realizing this we can conclude that the the calculated eigenvalues for the potential strength of $\omega_r = 0.01$ and $\omega_r = 0.5$ can not be trusted.
 \clearpage
 
 \section{Conclusion}
+We can conclude with the fact that the \textit{Jacobi Rotation Method} is slow. At least when it is implemented as if it is to handle general symmetrical matrices. Optimizations for the tridiagonal case might be a way to go, and realizing that all the off-diagonal elements are the same a further performance boost may be acquired. 
 
+As we have also seen it is important to test stability for our solutions when we are working on infinite intervals. It is important to realize the limitations of the computer, and handle the problems in a systematic way, which I failed to do here.
 
+\textbf{Comments}
+
+I had some problems getting started with this projects due to other commitments. From the last project I think i utilized functions better, but that my main file still ended up being rather chaotic. Especially the fact that I have to comment/uncomment large chunks of code to run different cases. A pain in the ass for other and myself if I'm ever to refer to this work again, which is not that unlikely. 
+
+I realized that i made some small mistakes which lead to untrustworthy results, but I did not have time to change it. I also would like to dig deeper in to the physics, and especially compare my results with the analytical ones from the article suggested in the project text. 
+
+I would also like to implement the calculations of the eigenvectors in my method so that I could do the test for orthogonality as well as the other test-functions I implemented. I did not use the specified library for unit-testing either, and one of my goals for the next project is to get this up and running from the start, and do some real unit-testing. I would also like to add an abstract for the next report. 
+
+Lastly I think that these projects are really time consuming, but at the same time mostly fun to work with. It is most definitely a good way to acquire a broad set of skills.
 \clearpage
 \appendix
-\section{Appendix}
+\section{C++ program}
+\subsection{main.cpp}
+\lstinputlisting{../Program/Project2/main.cpp}
+\subsection{functions.h}
+\lstinputlisting{../Program/Project2/functions.h}
+\subsection{functions.cpp}
+\lstinputlisting{../Program/Project2/functions.cpp}
+\subsection{test\_functions.h}
+\lstinputlisting{../Program/Project2/test_functions.h}
+\subsection{test\_functions.cpp}
+\lstinputlisting{../Program/Project2/test_functions.cpp}
+\lstset{language=Python, commentstyle=\textcolor[rgb]{0.00,0.50,0.00}, keepspaces=true, columns=flexible, basicstyle=\footnotesize, keywordstyle=\color{blue}, showstringspaces=false, inputencoding=ansinew}
+\section{Python Script}
+Python script for plotting of probability distributions.
+\lstinputlisting{../Program/build-Project2-Desktop-Debug/reader.py}
 
 
 

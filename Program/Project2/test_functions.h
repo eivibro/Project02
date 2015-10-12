@@ -4,6 +4,7 @@
 #include <armadillo>
 #include "functions.h"
 
-void testArmadilloBasedJacobiRotation();
+void testJacobiRotation();
+void testfindLargestOffDiagonalElement();
 
 #endif // TEST_FUNCTIONS_H
